@@ -1,36 +1,4 @@
-# Configuration
-$width = 3860
-$height = 2160
-$limit = 50
-$tags = "width:>$width height:>$height"
-
-$url = "https://danbooru.donmai.us/posts.json?tags=$tags&limit=$limit"
-
-$headers = @{
-    "User-Agent" = "Other"
-}
-
-
-# GET for wallpapers list
-
-try {
-    $response = Invoke-RestMethod -Uri $url -Method GET -Headers $headers
-}
-catch {
-    Write-Host "Error fetching data: $($_.Exception.Message)"
-    exit
-}
-
-# Random post from response
-$randomElement = $response | Get-Random
-
-# Get the image
-$fileUrl = $randomElement.file_url
-$fileExt = $randomElement.file_ext
-$imagePath = "$env:TEMP\wallpaper.$fileExt"
-
-Invoke-WebRequest -Uri $fileUrl -OutFile $imagePath -Headers $headers
-
+# Compile C# library
 if (-not ([Type]::GetType('Wallpaper.Setter'))) {
     $code = @"
     using System;
@@ -108,6 +76,7 @@ if (-not ([Type]::GetType('Wallpaper.Setter'))) {
             /// <returns></returns>
             [return: MarshalAs(UnmanagedType.LPWStr)]
             string GetMonitorDevicePathAt(uint monitorIndex);
+
             /// <summary>
             /// Gets number of monitor device paths.
             /// </summary>
@@ -150,12 +119,15 @@ if (-not ([Type]::GetType('Wallpaper.Setter'))) {
 
         public class Setter
         {
+            public static IDesktopWallpaper getDesktopWallpaperInterface() 
+            {
+                var desktopWallpaperType = Type.GetTypeFromCLSID(new Guid("C2CF3110-460E-4fc1-B9D0-8A1C0C9CC4BD"));
+                return (IDesktopWallpaper)Activator.CreateInstance(desktopWallpaperType);
+            }
 
             public static void SetWallpaperForMonitor(int monitorIndex, string wallpaperPath)
             {
-                var desktopWallpaperType = Type.GetTypeFromCLSID(new Guid("C2CF3110-460E-4fc1-B9D0-8A1C0C9CC4BD"));
-                var desktopWallpaper = (IDesktopWallpaper)Activator.CreateInstance(desktopWallpaperType);
-
+                var desktopWallpaper = getDesktopWallpaperInterface();
                 uint count = desktopWallpaper.GetMonitorDevicePathCount();
 
                 if (monitorIndex >= 0 && monitorIndex < count)
@@ -168,9 +140,75 @@ if (-not ([Type]::GetType('Wallpaper.Setter'))) {
                     throw new ArgumentOutOfRangeException("Monitor index out of range");
                 }
             }
+
+            public static int GetWidth(int monitorIndex)
+            {
+                var desktopWallpaper = getDesktopWallpaperInterface();
+                uint count = desktopWallpaper.GetMonitorDevicePathCount();
+
+                if (monitorIndex >= 0 && monitorIndex < count)
+                {
+                    string monitorID = desktopWallpaper.GetMonitorDevicePathAt((uint)monitorIndex);
+                    return System.Math.Abs(desktopWallpaper.GetMonitorRECT(monitorID).Left - desktopWallpaper.GetMonitorRECT(monitorID).Right);
+                }
+                else
+                {
+                    throw new ArgumentOutOfRangeException("Monitor index out of range");
+                }
+            }
+
+            public static int GetHeight(int monitorIndex)
+            {
+                var desktopWallpaper = getDesktopWallpaperInterface();
+                uint count = desktopWallpaper.GetMonitorDevicePathCount();
+
+                if (monitorIndex >= 0 && monitorIndex < count)
+                {
+                    string monitorID = desktopWallpaper.GetMonitorDevicePathAt((uint)monitorIndex);
+                    return System.Math.Abs(desktopWallpaper.GetMonitorRECT(monitorID).Top - desktopWallpaper.GetMonitorRECT(monitorID).Bottom);
+                }
+                else
+                {
+                    throw new ArgumentOutOfRangeException("Monitor index out of range");
+                }
+            }
         }
     }
 "@
+
+# Configuration
+$width = [Wallpaper.Setter]::GetWidth($monitor)
+$height = [Wallpaper.Setter]::GetHeight($monitor)
+$ratio = "16:9"
+$limit = 50
+$tags = "width:>$width height:>$height ratio:$ratio"
+$monitor = 1
+
+$url = "https://danbooru.donmai.us/posts.json?tags=$tags&limit=$limit"
+
+$headers = @{
+    "User-Agent" = "Other"
+}
+
+
+# GET for wallpapers list
+try {
+    $response = Invoke-RestMethod -Uri $url -Method GET -Headers $headers
+}
+catch {
+    Write-Host "Error fetching data: $($_.Exception.Message)"
+    exit
+}
+
+# Random post from response
+$randomElement = $response | Get-Random
+
+# Get the image
+$fileUrl = $randomElement.file_url
+$fileExt = $randomElement.file_ext
+$imagePath = "$env:TEMP\wallpaper.$fileExt"
+
+Invoke-WebRequest -Uri $fileUrl -OutFile $imagePath -Headers $headers
 
     # Set the wallpaper for a specific monitor using C# and COM Interface
     try {
@@ -192,7 +230,7 @@ if (-not ([Type]::GetType('Wallpaper.Setter'))) {
 }
 
 # Set the wallpaper for the first monitor
-[Wallpaper.Setter]::SetWallpaperForMonitor(1, $imagePath)
+[Wallpaper.Setter]::SetWallpaperForMonitor($monitor, $imagePath)
 
 Write-Host "Wallpaper set from: $fileUrl"
 
