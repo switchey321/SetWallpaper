@@ -27,11 +27,13 @@ $randomElement = $response | Get-Random
 
 # Get the image
 $fileUrl = $randomElement.file_url
-$imagePath = "$env:TEMP\wallpaper.jpg"
+$fileExt = $randomElement.file_ext
+$imagePath = "$env:TEMP\wallpaper.$fileExt"
 
 Invoke-WebRequest -Uri $fileUrl -OutFile $imagePath -Headers $headers
 
-$code = @"
+if (-not ([Type]::GetType('Wallpaper.Setter'))) {
+    $code = @"
     using System;
     using System.Collections.Generic;
     using System.Linq;
@@ -171,20 +173,21 @@ $code = @"
     }
 "@
 
-# Set the wallpaper for a specific monitor using C# and COM Interface
-try {
-    # Try to load the DLL
-    Add-Type -TypeDefinition $code
-}
-catch {
-    # If there's an error, show the details
-    Write-Host "Error loading the DLL: $($_.Exception.Message)"
+    # Set the wallpaper for a specific monitor using C# and COM Interface
+    try {
+        # Try to load the DLL
+        Add-Type -TypeDefinition $code
+    }
+    catch {
+        # If there's an error, show the details
+        Write-Host "Error loading the DLL: $($_.Exception.Message)"
     
-    # Display loader exceptions
-    if ($_.Exception -is [System.Reflection.ReflectionTypeLoadException]) {
-        $loaderExceptions = $_.Exception.LoaderExceptions
-        foreach ($ex in $loaderExceptions) {
-            Write-Host "Loader exception: $ex.Message"
+        # Display loader exceptions
+        if ($_.Exception -is [System.Reflection.ReflectionTypeLoadException]) {
+            $loaderExceptions = $_.Exception.LoaderExceptions
+            foreach ($ex in $loaderExceptions) {
+                Write-Host "Loader exception: $ex.Message"
+            }
         }
     }
 }
