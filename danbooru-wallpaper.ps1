@@ -172,43 +172,14 @@ if (-not ([Type]::GetType('Wallpaper.Setter'))) {
                     throw new ArgumentOutOfRangeException("Monitor index out of range");
                 }
             }
+
+            public static uint CountMonitors() {
+                var desktopWallpaper = getDesktopWallpaperInterface();
+                return desktopWallpaper.GetMonitorDevicePathCount();
+            }
         }
     }
 "@
-
-# Configuration
-$width = [Wallpaper.Setter]::GetWidth($monitor)
-$height = [Wallpaper.Setter]::GetHeight($monitor)
-$ratio = "16:9"
-$limit = 50
-$tags = "width:>$width height:>$height ratio:$ratio"
-$monitor = 1
-
-$url = "https://danbooru.donmai.us/posts.json?tags=$tags&limit=$limit"
-
-$headers = @{
-    "User-Agent" = "Other"
-}
-
-
-# GET for wallpapers list
-try {
-    $response = Invoke-RestMethod -Uri $url -Method GET -Headers $headers
-}
-catch {
-    Write-Host "Error fetching data: $($_.Exception.Message)"
-    exit
-}
-
-# Random post from response
-$randomElement = $response | Get-Random
-
-# Get the image
-$fileUrl = $randomElement.file_url
-$fileExt = $randomElement.file_ext
-$imagePath = "$env:TEMP\wallpaper.$fileExt"
-
-Invoke-WebRequest -Uri $fileUrl -OutFile $imagePath -Headers $headers
 
     # Set the wallpaper for a specific monitor using C# and COM Interface
     try {
@@ -218,7 +189,7 @@ Invoke-WebRequest -Uri $fileUrl -OutFile $imagePath -Headers $headers
     catch {
         # If there's an error, show the details
         Write-Host "Error loading the DLL: $($_.Exception.Message)"
-    
+
         # Display loader exceptions
         if ($_.Exception -is [System.Reflection.ReflectionTypeLoadException]) {
             $loaderExceptions = $_.Exception.LoaderExceptions
@@ -229,11 +200,44 @@ Invoke-WebRequest -Uri $fileUrl -OutFile $imagePath -Headers $headers
     }
 }
 
-# Set the wallpaper for the first monitor
-[Wallpaper.Setter]::SetWallpaperForMonitor($monitor, $imagePath)
+$numberOfMonitors = [Wallpaper.Setter]::CountMonitors()
 
-Write-Host "Wallpaper set from: $fileUrl"
+for ($monitor = 0; $monitor -lt $numberOfMonitors; $monitor++) {
+    # Configuration
+    $width = [Wallpaper.Setter]::GetWidth($monitor)
+    $height = [Wallpaper.Setter]::GetHeight($monitor)
+    $limit = 50
+    $tags = "width:>$width height:>$height"
 
-# Output the file path and URL for reference
-Write-Host "Wallpaper set from: $fileUrl"
-Write-Host "Image saved at: $imagePath"
+    $url = "https://danbooru.donmai.us/posts.json?tags=$tags&limit=$limit"
+
+    $headers = @{
+        "User-Agent" = "Other"
+    }
+
+
+    # GET for wallpapers list
+    try {
+        $response = Invoke-RestMethod -Uri $url -Method GET -Headers $headers
+    }
+    catch {
+        Write-Host "Error fetching data: $($_.Exception.Message)"
+        exit
+    }
+
+    # Random post from response
+    $randomElement = $response | Get-Random
+
+    # Get the image
+    $fileUrl = $randomElement.file_url
+    $fileExt = $randomElement.file_ext
+    $imagePath = "$env:TEMP\wallpaper$monitor.$fileExt"
+
+    Invoke-WebRequest -Uri $fileUrl -OutFile $imagePath -Headers $headers
+
+    # Set the wallpaper for the first monitor
+    [Wallpaper.Setter]::SetWallpaperForMonitor($monitor, $imagePath)
+
+    Write-Host "Wallpaper for monitor $monitor set from: $fileUrl"
+    Write-Host "Resolution $width x $height"
+}
