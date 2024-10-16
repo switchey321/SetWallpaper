@@ -73,6 +73,7 @@ namespace Wallpaper
         /// <returns></returns>
         [return: MarshalAs(UnmanagedType.LPWStr)]
         string GetMonitorDevicePathAt(uint monitorIndex);
+
         /// <summary>
         /// Gets number of monitor device paths.
         /// </summary>
@@ -115,18 +116,53 @@ namespace Wallpaper
 
     public class Setter
     {
+        public static IDesktopWallpaper getDesktopWallpaperInterface()
+        {
+            var desktopWallpaperType = Type.GetTypeFromCLSID(new Guid("C2CF3110-460E-4fc1-B9D0-8A1C0C9CC4BD"));
+            return (IDesktopWallpaper)Activator.CreateInstance(desktopWallpaperType);
+        }
 
         public static void SetWallpaperForMonitor(int monitorIndex, string wallpaperPath)
         {
-            var desktopWallpaperType = Type.GetTypeFromCLSID(new Guid("C2CF3110-460E-4fc1-B9D0-8A1C0C9CC4BD"));
-            var desktopWallpaper = (IDesktopWallpaper)Activator.CreateInstance(desktopWallpaperType);
-
+            var desktopWallpaper = getDesktopWallpaperInterface();
             uint count = desktopWallpaper.GetMonitorDevicePathCount();
 
             if (monitorIndex >= 0 && monitorIndex < count)
             {
                 string monitorID = desktopWallpaper.GetMonitorDevicePathAt((uint)monitorIndex);
                 desktopWallpaper.SetWallpaper(monitorID, wallpaperPath);
+            }
+            else
+            {
+                throw new ArgumentOutOfRangeException("Monitor index out of range");
+            }
+        }
+
+        public static int GetWidth(int monitorIndex)
+        {
+            var desktopWallpaper = getDesktopWallpaperInterface();
+            uint count = desktopWallpaper.GetMonitorDevicePathCount();
+
+            if (monitorIndex >= 0 && monitorIndex < count)
+            {
+                string monitorID = desktopWallpaper.GetMonitorDevicePathAt((uint)monitorIndex);
+                return System.Math.Abs(desktopWallpaper.GetMonitorRECT(monitorID).Left - desktopWallpaper.GetMonitorRECT(monitorID).Right);
+            }
+            else
+            {
+                throw new ArgumentOutOfRangeException("Monitor index out of range");
+            }
+        }
+
+        public static int GetHeight(int monitorIndex)
+        {
+            var desktopWallpaper = getDesktopWallpaperInterface();
+            uint count = desktopWallpaper.GetMonitorDevicePathCount();
+
+            if (monitorIndex >= 0 && monitorIndex < count)
+            {
+                string monitorID = desktopWallpaper.GetMonitorDevicePathAt((uint)monitorIndex);
+                return System.Math.Abs(desktopWallpaper.GetMonitorRECT(monitorID).Top - desktopWallpaper.GetMonitorRECT(monitorID).Bottom);
             }
             else
             {
