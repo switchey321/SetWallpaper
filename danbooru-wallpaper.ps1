@@ -117,8 +117,31 @@ if (-not ([Type]::GetType('Wallpaper.Setter'))) {
         {
         }
 
-        public class Setter
+        public class Utility
         {
+            static int GCD(int a, int b)
+            {
+                int Remainder;
+
+                while( b != 0 )
+                {
+                    Remainder = a % b;
+                    a = b;
+                    b = Remainder;
+                }
+
+                return a;
+            }
+
+
+            public static string AspectRatio(int x, int y) 
+            {
+                return string.Format("{0}:{1}",x/GCD(x,y), y/GCD(x,y));
+            }
+        }
+
+        public class Setter
+        {   
             public static IDesktopWallpaper getDesktopWallpaperInterface() 
             {
                 var desktopWallpaperType = Type.GetTypeFromCLSID(new Guid("C2CF3110-460E-4fc1-B9D0-8A1C0C9CC4BD"));
@@ -206,8 +229,9 @@ for ($monitor = 0; $monitor -lt $numberOfMonitors; $monitor++) {
     # Configuration
     $width = [Wallpaper.Setter]::GetWidth($monitor)
     $height = [Wallpaper.Setter]::GetHeight($monitor)
+    $ratio = [Wallpaper.Utility]::AspectRatio($width, $height)
     $limit = 50
-    $tags = "width:>$width height:>$height"
+    $tags = "width:>$width height:>$height ratio:$ratio"
 
     $url = "https://danbooru.donmai.us/posts.json?tags=$tags&limit=$limit"
 
