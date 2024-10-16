@@ -5,7 +5,6 @@ $limit = 50
 $tags = "width:>$width height:>$height"
 
 $url = "https://danbooru.donmai.us/posts.json?tags=$tags&limit=$limit"
-$dllPath = Join-Path -Path $PSScriptRoot -ChildPath "WallpaperSetter.dll"
 
 $headers = @{
     "User-Agent" = "Other"
