@@ -231,7 +231,7 @@ for ($monitor = 0; $monitor -lt $numberOfMonitors; $monitor++) {
     $width = [Wallpaper.Setter]::GetWidth($monitor)
     $height = [Wallpaper.Setter]::GetHeight($monitor)
     # $ratio = [Wallpaper.Utility]::AspectRatio($width, $height) = Unsuported by Konachan
-    $limit = 80
+    $limit = 100
     $tags = "width:>$width height:>$height"
 
     $baseUrl = $sources | Get-Random
@@ -252,7 +252,8 @@ for ($monitor = 0; $monitor -lt $numberOfMonitors; $monitor++) {
     }
 
     # Random post from response
-    $randomElement = $response | Get-Random
+    $threshold = 24MB
+    $randomElement = $response | Where-Object { $_.file_size -lt $threshold } | Get-Random
 
     # Get the image
     $fileUrl = $randomElement.file_url
@@ -260,11 +261,21 @@ for ($monitor = 0; $monitor -lt $numberOfMonitors; $monitor++) {
     $fileExt = [System.IO.Path]::GetExtension($fileName)
     $imagePath = "$env:TEMP\wallpaper$monitor$fileExt"
 
-    Invoke-WebRequest -Uri $fileUrl -OutFile $imagePath -Headers $headers
+    $response = Invoke-WebRequest -Uri $fileUrl -OutFile $imagePath -Headers $headers
 
-    # Set the wallpaper for the first monitor
-    [Wallpaper.Setter]::SetWallpaperForMonitor($monitor, $imagePath)
-
-    Write-Host "Wallpaper for monitor $monitor set from: $fileUrl"
-    Write-Host "Resolution $width x $height"
+    if (Test-Path $imagePath) {
+        $fileInfo = Get-Item $imagePath
+        if ($fileInfo.Length -gt 0) {
+            Write-Host "File downloaded successfully: $imagePath"
+            
+            # Set the wallpaper
+            [Wallpaper.Setter]::SetWallpaperForMonitor($monitor, $imagePath)
+            Write-Host "Wallpaper for monitor $monitor set from: $fileUrl"
+            Write-Host "Resolution $width x $height"
+        } else {
+            Write-Host "File exists but is empty. Download may have failed."
+        }
+    } else {
+        Write-Host "File not downloaded or path is incorrect: $imagePath"
+    }
 }
