@@ -204,7 +204,7 @@ if (-not ([Type]::GetType('Wallpaper.Setter'))) {
     }
 "@
 
-    # Set the wallpaper for a specific monitor using C# and COM Interface
+    # Register C# wallpaper setter
     try {
         # Try to load the DLL
         Add-Type -TypeDefinition $code
@@ -223,11 +223,14 @@ if (-not ([Type]::GetType('Wallpaper.Setter'))) {
     }
 }
 
+# Configuration
 $numberOfMonitors = [Wallpaper.Setter]::CountMonitors()
 $sources = "https://konachan.com/post.json", "https://danbooru.donmai.us/posts.json"
+$additionalTags = "-sketch" # there is a limit of 2 tags for free accounts
+$rating = "questionableless"
 
 for ($monitor = 0; $monitor -lt $numberOfMonitors; $monitor++) {
-    # Configuration
+    # Monitor configuration
     $width = [Wallpaper.Setter]::GetWidth($monitor)
     $height = [Wallpaper.Setter]::GetHeight($monitor)
     # $ratio = [Wallpaper.Utility]::AspectRatio($width, $height) = Unsuported by Konachan
@@ -235,7 +238,7 @@ for ($monitor = 0; $monitor -lt $numberOfMonitors; $monitor++) {
     $tags = "width:>$width height:>$height"
 
     $baseUrl = $sources | Get-Random
-    $url = $baseUrl+"?tags=$tags&limit=$limit"
+    $url = $baseUrl+"?tags=$tags $additionalTags rating:$rating&limit=$limit"
 
     $headers = @{
         "User-Agent" = "Other"
@@ -252,7 +255,7 @@ for ($monitor = 0; $monitor -lt $numberOfMonitors; $monitor++) {
     }
 
     # Random post from response
-    $threshold = 24MB
+    $threshold = 25MB
     $randomElement = $response | Where-Object { $_.file_size -lt $threshold } | Get-Random
 
     # Get the image
