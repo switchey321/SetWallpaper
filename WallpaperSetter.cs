@@ -114,6 +114,29 @@ namespace Wallpaper
     {
     }
 
+    public class Utility
+    {
+        static int GCD(int a, int b)
+        {
+            int Remainder;
+
+            while (b != 0)
+            {
+                Remainder = a % b;
+                a = b;
+                b = Remainder;
+            }
+
+            return a;
+        }
+
+
+        public static string AspectRatio(int x, int y)
+        {
+            return string.Format("{0}:{1}", x / GCD(x, y), y / GCD(x, y));
+        }
+    }
+
     public class Setter
     {
         public static IDesktopWallpaper getDesktopWallpaperInterface()
@@ -168,6 +191,12 @@ namespace Wallpaper
             {
                 throw new ArgumentOutOfRangeException("Monitor index out of range");
             }
+        }
+
+        public static uint CountMonitors()
+        {
+            var desktopWallpaper = getDesktopWallpaperInterface();
+            return desktopWallpaper.GetMonitorDevicePathCount();
         }
     }
 }

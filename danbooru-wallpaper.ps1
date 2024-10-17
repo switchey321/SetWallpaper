@@ -224,16 +224,18 @@ if (-not ([Type]::GetType('Wallpaper.Setter'))) {
 }
 
 $numberOfMonitors = [Wallpaper.Setter]::CountMonitors()
+$sources = "https://konachan.com/post.json", "https://danbooru.donmai.us/posts.json"
 
 for ($monitor = 0; $monitor -lt $numberOfMonitors; $monitor++) {
     # Configuration
     $width = [Wallpaper.Setter]::GetWidth($monitor)
     $height = [Wallpaper.Setter]::GetHeight($monitor)
-    $ratio = [Wallpaper.Utility]::AspectRatio($width, $height)
-    $limit = 50
-    $tags = "width:>$width height:>$height ratio:$ratio"
+    # $ratio = [Wallpaper.Utility]::AspectRatio($width, $height) = Unsuported by Konachan
+    $limit = 80
+    $tags = "width:>$width height:>$height"
 
-    $url = "https://danbooru.donmai.us/posts.json?tags=$tags&limit=$limit"
+    $baseUrl = $sources | Get-Random
+    $url = $baseUrl+"?tags=$tags&limit=$limit"
 
     $headers = @{
         "User-Agent" = "Other"
@@ -254,8 +256,9 @@ for ($monitor = 0; $monitor -lt $numberOfMonitors; $monitor++) {
 
     # Get the image
     $fileUrl = $randomElement.file_url
-    $fileExt = $randomElement.file_ext
-    $imagePath = "$env:TEMP\wallpaper$monitor.$fileExt"
+    $fileName = [System.IO.Path]::GetFileName($fileUrl)
+    $fileExt = [System.IO.Path]::GetExtension($fileName)
+    $imagePath = "$env:TEMP\wallpaper$monitor$fileExt"
 
     Invoke-WebRequest -Uri $fileUrl -OutFile $imagePath -Headers $headers
 
